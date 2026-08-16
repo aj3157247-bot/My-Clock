@@ -11,6 +11,7 @@ jobs:
     runs-on: ubuntu-22.04
 
     steps:
+
       - name: Checkout
         uses: actions/checkout@v4
 
@@ -47,11 +48,11 @@ jobs:
 
       - name: Install Buildozer
         run: |
-          python -m pip install --upgrade pip -q
-          pip install buildozer setuptools -q
-          pip install "cython<3" -q
+          python -m pip install --upgrade pip
+          pip install buildozer setuptools
+          pip install "cython<3"
 
-      - name: Clean old files
+      - name: Clean old Buildozer
         run: |
           rm -rf ~/.buildozer
           rm -rf .buildozer
@@ -63,43 +64,44 @@ jobs:
         continue-on-error: true
         run: |
           buildozer -v android debug > build.log 2>&1
-          echo "BUILD_EXIT_CODE=$?" >> build_result.txt
+          echo "Buildozer exit code: $?" 
 
-      - name: Show real build result
+      - name: Show REAL error
         run: |
-          echo "========================================"
-          echo "        MY CLOCK BUILD RESULT"
-          echo "========================================"
+          echo ""
+          echo "=============================================="
+          echo "              BUILD RESULT"
+          echo "=============================================="
 
           APK=$(find bin -type f -name "*.apk" 2>/dev/null | head -n 1)
 
           if [ -n "$APK" ]; then
             echo ""
-            echo "========================================"
-            echo "       APK CREATED SUCCESSFULLY"
-            echo "========================================"
+            echo "APK CREATED SUCCESSFULLY"
             echo ""
             ls -lh "$APK"
           else
             echo ""
-            echo "========================================"
-            echo "          APK WAS NOT CREATED"
-            echo "========================================"
+            echo "APK WAS NOT CREATED"
             echo ""
-            echo "REAL BUILD ERROR:"
-            echo ""
+            echo "=============================================="
+            echo "             ERROR SEARCH"
+            echo "=============================================="
 
-            grep -iE \
-              "error:|error |failed|exception|traceback|fatal|aidl not found|command failed|exit code|no such file|not found" \
+            grep -inE \
+              "error|failed|exception|traceback|fatal|aidl|command failed|exit code|not found|no such file|could not|cannot" \
               build.log \
-              | tail -n 150 || true
+              | tail -n 200 || true
 
             echo ""
-            echo "========== LAST 80 LINES =========="
-            tail -n 80 build.log
+            echo "=============================================="
+            echo "             LAST 120 LINES"
+            echo "=============================================="
+
+            tail -n 120 build.log
           fi
 
-      - name: Upload Build Log
+      - name: Upload complete log
         if: always()
         uses: actions/upload-artifact@v4
         with:
@@ -107,7 +109,7 @@ jobs:
           path: build.log
           if-no-files-found: ignore
 
-      - name: Upload My Clock APK
+      - name: Upload APK
         if: always()
         uses: actions/upload-artifact@v4
         with:
@@ -115,9 +117,10 @@ jobs:
           path: bin/*.apk
           if-no-files-found: ignore
 
-      - name: Fail if APK was not created
+      - name: Finish
         if: steps.build.outcome == 'failure'
         run: |
+          echo ""
           echo "Buildozer failed."
-          echo "The real error is shown above."
+          echo "The actual Buildozer error is printed in the previous step."
           exit 1
