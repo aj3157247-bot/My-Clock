@@ -7,7 +7,7 @@ package.domain = org.example
 source.dir = .
 source.include_exts = py,png,jpg,jpeg,kv,atlas
 
-requirements = python3,kivy
+requirements = python3,kivy,pyjnius
 
 orientation = portrait
 version = 1.0
@@ -19,9 +19,8 @@ android.archs = arm64-v8a
 android.accept_sdk_license = True
 
 log_level = 2
-fullscreen = 0
 
 
 [buildozer]
 
-warn_on_root = 1
+log_level = 2
