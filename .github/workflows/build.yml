@@ -28,8 +28,9 @@ jobs:
 
       - name: Install dependencies
         run: |
-          sudo apt-get update
-          sudo apt-get install -y \
+          sudo apt-get update -qq
+
+          sudo apt-get install -y -qq \
             git \
             zip \
             unzip \
@@ -49,32 +50,116 @@ jobs:
       - name: Install Buildozer
         run: |
           python -m pip install --upgrade pip
-          pip install buildozer
+          pip install buildozer setuptools
           pip install "cython<3"
 
-      - name: Clean
+      - name: Clean old Buildozer files
         run: |
           rm -rf ~/.buildozer
           rm -rf .buildozer
           rm -rf bin
+          rm -f build.log
 
       - name: Build My Clock
+        id: build
+        continue-on-error: true
+        shell: bash
         run: |
-          buildozer -v android debug
+          set +e
+
+          echo "========================================"
+          echo "       STARTING MY CLOCK BUILD"
+          echo "========================================"
+
+          buildozer -v android debug > build.log 2>&1
+
+          CODE=$?
+
+          echo ""
+          echo "========================================"
+          echo "       BUILD FINISHED"
+          echo "       EXIT CODE: $CODE"
+          echo "========================================"
+
+          echo ""
+          echo "========================================"
+          echo "       LAST 100 LINES"
+          echo "========================================"
+
+          tail -n 100 build.log
+
+          echo ""
+          echo "========================================"
+          echo "       IMPORTANT ERRORS"
+          echo "========================================"
+
+          grep -inE \
+            "error|failed|exception|traceback|fatal|aidl|command failed|not found|no such file|cannot|could not" \
+            build.log \
+            | tail -n 50 || true
+
+          echo ""
+          echo "========================================"
+          echo "       END OF BUILD LOG"
+          echo "========================================"
+
+          exit 0
 
       - name: Check APK
-        if: always()
+        id: check_apk
+        shell: bash
         run: |
-          echo "================================"
-          echo "CHECKING APK"
-          echo "================================"
+          echo "========================================"
+          echo "       CHECKING FOR APK"
+          echo "========================================"
 
-          find . -type f -name "*.apk" -print
+          APK=$(find bin -type f -name "*.apk" 2>/dev/null | head -n 1)
 
-      - name: Upload APK
-        if: success()
+          if [ -n "$APK" ]; then
+            echo ""
+            echo "APK FOUND!"
+            echo "$APK"
+            echo ""
+            ls -lh "$APK"
+            echo "apk_found=true" >> "$GITHUB_OUTPUT"
+          else
+            echo ""
+            echo "NO APK FOUND"
+            echo "apk_found=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Upload My Clock APK
+        if: steps.check_apk.outputs.apk_found == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: myclock-apk
           path: bin/*.apk
           if-no-files-found: error
+
+      - name: Upload Build Log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: myclock-build-log
+          path: build.log
+          if-no-files-found: warn
+
+      - name: Final Result
+        shell: bash
+        run: |
+          if [ "${{ steps.check_apk.outputs.apk_found }}" = "true" ]; then
+            echo ""
+            echo "========================================"
+            echo "       MY CLOCK APK CREATED!"
+            echo "========================================"
+          else
+            echo ""
+            echo "========================================"
+            echo "       APK WAS NOT CREATED"
+            echo "========================================"
+            echo ""
+            echo "The important Buildozer error is printed"
+            echo "above in the Build My Clock step."
+            echo ""
+            exit 1
+          fi
