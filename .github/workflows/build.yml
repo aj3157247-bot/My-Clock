@@ -1,4 +1,4 @@
-name: Build APK
+name: Build My Clock APK
 
 on:
   workflow_dispatch:
@@ -25,7 +25,7 @@ jobs:
           distribution: temurin
           java-version: "17"
 
-      - name: Install system dependencies
+      - name: Install dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y \
@@ -35,6 +35,59 @@ jobs:
             autoconf \
             automake \
             libtool \
+            pkg-config \
+            zlib1g-dev \
+            libncurses5-dev \
+            libncursesw5-dev \
+            cmake
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Accept Android licenses
+        run: |
+          yes | sdkmanager --licenses || true
+
+      - name: Install Android SDK packages
+        run: |
+          sdkmanager "platform-tools"
+          sdkmanager "platforms;android-35"
+          sdkmanager "build-tools;35.0.0"
+
+      - name: Prepare Buildozer SDK
+        run: |
+          mkdir -p /home/runner/.buildozer/android/platform
+          ln -sfn "$ANDROID_SDK_ROOT" /home/runner/.buildozer/android/platform/android-sdk
+
+          echo "Buildozer SDK:"
+          ls -la /home/runner/.buildozer/android/platform/android-sdk
+
+          echo "Build Tools:"
+          ls -la /home/runner/.buildozer/android/platform/android-sdk/build-tools/35.0.0
+
+          echo "AIDL:"
+          ls -l /home/runner/.buildozer/android/platform/android-sdk/build-tools/35.0.0/aidl
+
+      - name: Install Buildozer
+        run: |
+          python -m pip install --upgrade pip
+          pip install buildozer
+          pip install "cython<3"
+
+      - name: Build My Clock APK
+        run: |
+          export ANDROID_HOME="$ANDROID_SDK_ROOT"
+          export ANDROIDSDK="$ANDROID_SDK_ROOT"
+          export PATH="$ANDROID_HOME/platform-tools:$ANDROID_HOME/build-tools/35.0.0:$PATH"
+
+          buildozer -v android debug
+
+      - name: Upload My Clock APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: myclock-apk
+          path: bin/*.apk
+          if-no-files-found: error            libtool \
             pkg-config \
             zlib1g-dev \
             libncurses5-dev \
