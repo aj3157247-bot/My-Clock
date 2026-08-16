@@ -14,6 +14,7 @@ jobs:
     runs-on: ubuntu-22.04
 
     steps:
+
       - name: Checkout
         uses: actions/checkout@v4
 
@@ -31,6 +32,7 @@ jobs:
       - name: Install Linux dependencies
         run: |
           sudo apt-get update
+
           sudo apt-get install -y \
             git \
             zip \
@@ -57,7 +59,7 @@ jobs:
           pip install buildozer setuptools
           pip install cython==0.29.34
 
-      - name: Clean Buildozer
+      - name: Clean old Buildozer files
         run: |
           rm -rf ~/.buildozer
           rm -rf .buildozer
@@ -65,381 +67,39 @@ jobs:
 
       - name: Build My Clock
         run: |
-          buildozer -v android debug
+          set -o pipefail
+
+          buildozer -v android debug 2>&1 | tee build.log
+
+      - name: Show Build Errors
+        if: failure()
+        run: |
+          echo "========================================"
+          echo "IMPORTANT BUILD ERRORS"
+          echo "========================================"
+
+          grep -iE \
+            "error:|error |failed|exception|traceback|fatal|aidl not found|command failed|exit code" \
+            build.log \
+            | tail -n 200 || true
+
+          echo "========================================"
+          echo "LAST 100 LINES"
+          echo "========================================"
+
+          tail -n 100 build.log || true
+
+      - name: Upload Build Log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: myclock-build-log
+          path: build.log
+          if-no-files-found: ignore
 
       - name: Upload My Clock APK
         uses: actions/upload-artifact@v4
         with:
           name: myclock-apk
           path: bin/*.apk
-          if-no-files-found: error            automake \
-            autopoint \
-            libtool \
-            pkg-config \
-            zlib1g-dev \
-            libncurses5-dev \
-            libncursesw5-dev \
-            libtinfo6 \
-            cmake \
-            libffi-dev \
-            libssl-dev \
-            gettext \
-            ant
-
-      - name: Set Java 17
-        run: |
-          echo "JAVA_HOME=$JAVA_HOME"
-          java -version
-          javac -version
-
-      - name: Install Buildozer
-        run: |
-          python -m pip install --upgrade pip
-          pip install buildozer
-          pip install "cython<3"
-
-      - name: Clean previous Android build
-        run: |
-          rm -rf .buildozer
-          rm -rf bin
-
-      - name: Build My Clock APK
-        run: |
-          export JAVA_HOME="$JAVA_HOME"
-          export PATH="$JAVA_HOME/bin:$PATH"
-
-          buildozer -v android debug
-
-      - name: Upload My Clock APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: myclock-apk
-          path: bin/*.apk
-          if-no-files-found: error            git \
-            zip \
-            unzip \
-            autoconf \
-            automake \
-            libtool \
-            pkg-config \
-            zlib1g-dev \
-            libncurses5-dev \
-            libncursesw5-dev \
-            cmake
-
-      - name: Set up Android SDK
-        uses: android-actions/setup-android@v3
-
-      - name: Accept Android SDK licenses
-        run: |
-          yes | sdkmanager --licenses || true
-
-      - name: Install Android SDK packages
-        run: |
-          sdkmanager "platform-tools"
-          sdkmanager "platforms;android-35"
-          sdkmanager "build-tools;35.0.0"
-
-      - name: Prepare Buildozer SDK
-        run: |
-          mkdir -p /home/runner/.buildozer/android/platform
-
-          rm -rf /home/runner/.buildozer/android/platform/android-sdk
-
-          ln -s "$ANDROID_SDK_ROOT" \
-            /home/runner/.buildozer/android/platform/android-sdk
-
-          echo "Android SDK:"
-          echo "$ANDROID_SDK_ROOT"
-
-          echo "AIDL:"
-          ls -lh \
-            /home/runner/.buildozer/android/platform/android-sdk/build-tools/35.0.0/aidl
-
-      - name: Install Buildozer
-        run: |
-          python -m pip install --upgrade pip
-          pip install buildozer
-          pip install "cython<3"
-
-      - name: Build My Clock APK
-        env:
-          JAVA_HOME: ${{ env.JAVA_HOME }}
-          ANDROID_HOME: ${{ env.ANDROID_SDK_ROOT }}
-          ANDROIDSDK: ${{ env.ANDROID_SDK_ROOT }}
-        run: |
-          export JAVA_HOME="$JAVA_HOME"
-          export ANDROID_HOME="$ANDROID_SDK_ROOT"
-          export ANDROIDSDK="$ANDROID_SDK_ROOT"
-
-          export PATH="$JAVA_HOME/bin:$ANDROID_HOME/platform-tools:$ANDROID_HOME/build-tools/35.0.0:$PATH"
-
-          echo "JAVA_HOME=$JAVA_HOME"
-          echo "ANDROID_HOME=$ANDROID_HOME"
-
-          java -version
-
-          buildozer -v android debug
-
-      - name: Upload My Clock APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: myclock-apk
-          path: bin/*.apk
-          if-no-files-found: error            libtool \
-            pkg-config \
-            zlib1g-dev \
-            libncurses5-dev \
-            libncursesw5-dev \
-            cmake
-
-      - name: Set up Android SDK
-        uses: android-actions/setup-android@v3
-
-      - name: Accept Android licenses
-        run: |
-          yes | sdkmanager --licenses || true
-
-      - name: Install Android SDK packages
-        run: |
-          sdkmanager "platform-tools"
-          sdkmanager "platforms;android-35"
-          sdkmanager "build-tools;35.0.0"
-
-      - name: Prepare Buildozer SDK
-        run: |
-          mkdir -p /home/runner/.buildozer/android/platform
-          ln -sfn "$ANDROID_SDK_ROOT" \
-            /home/runner/.buildozer/android/platform/android-sdk
-
-          echo "Checking SDK..."
-          ls -la /home/runner/.buildozer/android/platform/android-sdk
-
-          echo "Checking AIDL..."
-          ls -l \
-            /home/runner/.buildozer/android/platform/android-sdk/build-tools/35.0.0/aidl
-
-      - name: Install Buildozer
-        run: |
-          python -m pip install --upgrade pip
-          pip install buildozer
-          pip install "cython<3"
-
-      - name: Check Java
-        run: |
-          java -version
-
-      - name: Build My Clock APK
-        run: |
-          export ANDROID_HOME="$ANDROID_SDK_ROOT"
-          export ANDROIDSDK="$ANDROID_SDK_ROOT"
-          export PATH="$ANDROID_HOME/platform-tools:$ANDROID_HOME/build-tools/35.0.0:$PATH"
-
-          buildozer -v android debug
-
-      - name: Upload My Clock APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: myclock-apk
-          path: bin/*.apk
-          if-no-files-found: error            libtool \
-            pkg-config \
-            zlib1g-dev \
-            libncurses5-dev \
-            libncursesw5-dev \
-            cmake
-
-      - name: Set up Android SDK
-        uses: android-actions/setup-android@v3
-
-      - name: Accept Android licenses
-        run: |
-          yes | sdkmanager --licenses || true
-
-      - name: Install Android SDK packages
-        run: |
-          sdkmanager "platform-tools"
-          sdkmanager "platforms;android-35"
-          sdkmanager "build-tools;35.0.0"
-
-      - name: Prepare Buildozer SDK
-        run: |
-          mkdir -p /home/runner/.buildozer/android/platform
-          ln -sfn "$ANDROID_SDK_ROOT" /home/runner/.buildozer/android/platform/android-sdk
-
-          echo "Buildozer SDK:"
-          ls -la /home/runner/.buildozer/android/platform/android-sdk
-
-          echo "Build Tools:"
-          ls -la /home/runner/.buildozer/android/platform/android-sdk/build-tools/35.0.0
-
-          echo "AIDL:"
-          ls -l /home/runner/.buildozer/android/platform/android-sdk/build-tools/35.0.0/aidl
-
-      - name: Install Buildozer
-        run: |
-          python -m pip install --upgrade pip
-          pip install buildozer
-          pip install "cython<3"
-
-      - name: Build My Clock APK
-        run: |
-          export ANDROID_HOME="$ANDROID_SDK_ROOT"
-          export ANDROIDSDK="$ANDROID_SDK_ROOT"
-          export PATH="$ANDROID_HOME/platform-tools:$ANDROID_HOME/build-tools/35.0.0:$PATH"
-
-          buildozer -v android debug
-
-      - name: Upload My Clock APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: myclock-apk
-          path: bin/*.apk
-          if-no-files-found: error            libtool \
-            pkg-config \
-            zlib1g-dev \
-            libncurses5-dev \
-            libncursesw5-dev \
-            cmake
-
-      - name: Set up Android SDK
-        uses: android-actions/setup-android@v3
-
-      - name: Accept Android SDK licenses
-        run: |
-          yes | sdkmanager --licenses > /dev/null || true
-
-      - name: Install Android SDK
-        run: |
-          sdkmanager "platform-tools"
-          sdkmanager "platforms;android-35"
-          sdkmanager "build-tools;35.0.0"
-
-      - name: Verify Android SDK
-        run: |
-          echo "ANDROID_HOME=$ANDROID_HOME"
-          echo "ANDROID_SDK_ROOT=$ANDROID_SDK_ROOT"
-          test -f "$ANDROID_HOME/build-tools/35.0.0/aidl"
-          echo "AIDL found successfully."
-          ls -lh "$ANDROID_HOME/build-tools/35.0.0/aidl"
-
-      - name: Install Buildozer
-        run: |
-          python -m pip install --upgrade pip
-          pip install buildozer
-          pip install "cython<3"
-
-      - name: Configure Buildozer
-        run: |
-          mkdir -p ~/.buildozer
-          cat > ~/.buildozer/config <<EOF
-          [buildozer]
-          android.sdk_path = $ANDROID_SDK_ROOT
-          android.accept_sdk_license = True
-          EOF
-
-      - name: Build APK
-        env:
-          ANDROID_HOME: ${{ env.ANDROID_SDK_ROOT }}
-          ANDROIDSDK: ${{ env.ANDROID_SDK_ROOT }}
-        run: |
-          export ANDROID_HOME="$ANDROID_SDK_ROOT"
-          export ANDROIDSDK="$ANDROID_SDK_ROOT"
-          export PATH="$ANDROID_HOME/platform-tools:$ANDROID_HOME/build-tools/35.0.0:$PATH"
-
-          buildozer -v android debug
-
-      - name: Upload APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: myclock-apk
-          path: bin/*.apk
-          if-no-files-found: error            pkg-config \
-            zlib1g-dev \
-            libncurses5-dev \
-            libncursesw5-dev \
-            cmake
-
-      - name: Set up Android SDK
-        uses: android-actions/setup-android@v3
-
-      - name: Accept Android licenses
-        run: |
-          yes | sdkmanager --licenses || true
-
-      - name: Install Android SDK packages
-        run: |
-          sdkmanager "platform-tools"
-          sdkmanager "platforms;android-35"
-          sdkmanager "build-tools;35.0.0"
-
-      - name: Check Android SDK
-        run: |
-          echo "ANDROID_HOME=$ANDROID_HOME"
-          echo "ANDROID_SDK_ROOT=$ANDROID_SDK_ROOT"
-          echo "Checking AIDL..."
-          ls -l "$ANDROID_HOME/build-tools/35.0.0/aidl"
-          "$ANDROID_HOME/build-tools/35.0.0/aidl" --version
-
-      - name: Install Buildozer
-        run: |
-          python -m pip install --upgrade pip
-          pip install buildozer
-          pip install "cython<3"
-
-      - name: Configure Buildozer
-        run: |
-          mkdir -p ~/.buildozer
-          mkdir -p ~/.buildozer/android
-
-          echo "android.accept_sdk_license = True" >> ~/.buildozer/config
-
-      - name: Build APK
-        run: |
-          export ANDROID_HOME="$ANDROID_SDK_ROOT"
-          export ANDROIDSDK="$ANDROID_SDK_ROOT"
-          export PATH="$ANDROID_HOME/platform-tools:$ANDROID_HOME/build-tools/35.0.0:$PATH"
-
-          buildozer -v android debug
-
-      - name: Upload APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: myclock-apk
-          path: bin/*.apk            pkg-config \
-            zlib1g-dev \
-            libncurses5-dev \
-            libncursesw5-dev \
-            cmake
-
-      - name: Set up Android SDK
-        uses: android-actions/setup-android@v3
-
-      - name: Install Android SDK packages
-        run: |
-          sdkmanager "platform-tools"
-          sdkmanager "platforms;android-35"
-          sdkmanager "build-tools;35.0.0"
-          yes | sdkmanager --licenses
-
-      - name: Check AIDL
-        run: |
-          echo "Checking AIDL..."
-          find "$ANDROID_HOME" -name aidl -type f
-          aidl --version || true
-
-      - name: Install Buildozer
-        run: |
-          python -m pip install --upgrade pip
-          pip install buildozer
-          pip install "cython<3"
-
-      - name: Build APK
-        run: |
-          buildozer -v android debug
-
-      - name: Upload APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: myclock-apk
-          path: bin/*.apk
+          if-no-files-found: error
