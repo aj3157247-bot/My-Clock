@@ -15,12 +15,13 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Python
+      - name: Setup Python 3.11
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
+          cache: "pip"
 
-      - name: Setup Java
+      - name: Setup Java 17
         uses: actions/setup-java@v5
         with:
           distribution: temurin
@@ -29,6 +30,7 @@ jobs:
       - name: Install system dependencies
         run: |
           sudo apt-get update -qq
+
           sudo apt-get install -y -qq \
             git \
             zip \
@@ -46,22 +48,42 @@ jobs:
             libssl-dev \
             gettext
 
-      - name: Install Buildozer
+      - name: Check Python
         run: |
-          python -m pip install --upgrade pip
+          python --version
+          python -c "import sys; print(sys.executable)"
+          python -m pip --version
+
+      - name: Install Build tools
+        run: |
+          python -m pip install --upgrade pip setuptools wheel
+
           pip install buildozer==1.5.0
-          pip install "cython<3"
+          pip install "cython==0.29.36"
 
       - name: Clean old build
         run: |
           rm -rf ~/.buildozer
           rm -rf .buildozer
           rm -rf bin
+          rm -rf build
 
       - name: Build My Clock APK
         shell: bash
+        env:
+          PIP_NO_CACHE_DIR: "1"
+          PIP_DISABLE_PIP_VERSION_CHECK: "1"
         run: |
           set -o pipefail
+
+          echo "=========================================="
+          echo "PYTHON VERSION"
+          echo "=========================================="
+          python --version
+
+          echo "=========================================="
+          echo "BUILDING APK"
+          echo "=========================================="
 
           buildozer -v android debug 2>&1 | tee build.log
 
@@ -73,9 +95,9 @@ jobs:
           echo "=========================================="
 
           grep -inE \
-            "error|failed|exception|traceback|fatal|aidl|command failed|not found|no such file|cannot|could not" \
+            "error:|error |failed|exception|traceback|fatal|aidl|command failed|not found|no such file|cannot|could not|unsupported wheel" \
             build.log \
-            | tail -n 100 || true
+            | tail -n 150 || true
 
       - name: Check APK
         if: always()
