@@ -52,50 +52,24 @@ jobs:
           pip install buildozer
           pip install "cython<3"
 
-      - name: Clean Build
+      - name: Clean
         run: |
           rm -rf ~/.buildozer
           rm -rf .buildozer
           rm -rf bin
-          rm -f build.log
 
       - name: Build My Clock
-        id: build
-        continue-on-error: true
-        shell: bash
         run: |
-          set +e
+          buildozer -v android debug
 
-          buildozer -v android debug > build.log 2>&1
-
-          BUILD_EXIT=$?
-
-          echo ""
-          echo "=========================================="
-          echo "BUILD EXIT CODE: $BUILD_EXIT"
-          echo "=========================================="
-
-          echo ""
-          echo "========== LAST 200 LINES =========="
-          tail -n 200 build.log
-
-          echo ""
-          echo "========== SEARCHING ERRORS =========="
-
-          grep -inE \
-            "error|failed|exception|traceback|fatal|aidl|command failed|exit code|not found|no such file|could not|cannot" \
-            build.log \
-            | tail -n 200 || true
-
-          exit $BUILD_EXIT
-
-      - name: Upload Build Log
+      - name: Check APK
         if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: myclock-build-log
-          path: build.log
-          if-no-files-found: ignore
+        run: |
+          echo "================================"
+          echo "CHECKING APK"
+          echo "================================"
+
+          find . -type f -name "*.apk" -print
 
       - name: Upload APK
         if: success()
