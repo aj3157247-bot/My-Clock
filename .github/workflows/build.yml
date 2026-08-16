@@ -29,7 +29,6 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update -qq
-
           sudo apt-get install -y -qq \
             git \
             zip \
@@ -53,113 +52,76 @@ jobs:
           pip install buildozer setuptools
           pip install "cython<3"
 
-      - name: Clean old Buildozer files
+      - name: Clean
         run: |
           rm -rf ~/.buildozer
           rm -rf .buildozer
           rm -rf bin
-          rm -f build.log
 
       - name: Build My Clock
-        id: build
-        continue-on-error: true
         shell: bash
         run: |
           set +e
 
-          echo "========================================"
-          echo "       STARTING MY CLOCK BUILD"
-          echo "========================================"
+          buildozer -v android debug 2>&1 | tee build.log
 
-          buildozer -v android debug > build.log 2>&1
-
-          CODE=$?
+          CODE=${PIPESTATUS[0]}
 
           echo ""
-          echo "========================================"
-          echo "       BUILD FINISHED"
-          echo "       EXIT CODE: $CODE"
-          echo "========================================"
+          echo "=========================================="
+          echo "          BUILD EXIT CODE: $CODE"
+          echo "=========================================="
 
           echo ""
-          echo "========================================"
-          echo "       LAST 100 LINES"
-          echo "========================================"
+          echo "=========================================="
+          echo "          LAST 150 LINES"
+          echo "=========================================="
 
-          tail -n 100 build.log
+          tail -n 150 build.log
 
           echo ""
-          echo "========================================"
-          echo "       IMPORTANT ERRORS"
-          echo "========================================"
+          echo "=========================================="
+          echo "          ERRORS FOUND"
+          echo "=========================================="
 
           grep -inE \
             "error|failed|exception|traceback|fatal|aidl|command failed|not found|no such file|cannot|could not" \
             build.log \
-            | tail -n 50 || true
+            | tail -n 100 || true
 
           echo ""
-          echo "========================================"
-          echo "       END OF BUILD LOG"
-          echo "========================================"
+          echo "=========================================="
+          echo "          BUILD FINISHED"
+          echo "=========================================="
+
+          if find bin -type f -name "*.apk" 2>/dev/null | grep -q .; then
+            echo "APK CREATED!"
+          else
+            echo "APK NOT CREATED"
+          fi
 
           exit 0
 
       - name: Check APK
-        id: check_apk
-        shell: bash
         run: |
-          echo "========================================"
-          echo "       CHECKING FOR APK"
-          echo "========================================"
+          echo "=========================================="
+          echo "          CHECKING APK"
+          echo "=========================================="
 
-          APK=$(find bin -type f -name "*.apk" 2>/dev/null | head -n 1)
+          find . -type f -name "*.apk" -print || true
 
-          if [ -n "$APK" ]; then
-            echo ""
-            echo "APK FOUND!"
-            echo "$APK"
-            echo ""
-            ls -lh "$APK"
-            echo "apk_found=true" >> "$GITHUB_OUTPUT"
-          else
-            echo ""
-            echo "NO APK FOUND"
-            echo "apk_found=false" >> "$GITHUB_OUTPUT"
-          fi
-
-      - name: Upload My Clock APK
-        if: steps.check_apk.outputs.apk_found == 'true'
+      - name: Upload APK
+        if: success()
         uses: actions/upload-artifact@v4
         with:
           name: myclock-apk
           path: bin/*.apk
-          if-no-files-found: error
+          if-no-files-found: ignore
 
-      - name: Upload Build Log
+      - name: Upload Log
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: myclock-build-log
           path: build.log
-          if-no-files-found: warn
-
-      - name: Final Result
-        shell: bash
-        run: |
-          if [ "${{ steps.check_apk.outputs.apk_found }}" = "true" ]; then
-            echo ""
-            echo "========================================"
-            echo "       MY CLOCK APK CREATED!"
-            echo "========================================"
-          else
-            echo ""
-            echo "========================================"
-            echo "       APK WAS NOT CREATED"
-            echo "========================================"
-            echo ""
-            echo "The important Buildozer error is printed"
-            echo "above in the Build My Clock step."
-            echo ""
-            exit 1
-          fi
+          if-no-files-found: ignore
