@@ -4,7 +4,7 @@ title = My Clock
 package.name = myclock
 package.domain = org.example
 
-source.main = main.py
+source.dir = .
 source.include_exts = py,png,jpg,jpeg,kv,atlas
 
 requirements = python3,kivy
