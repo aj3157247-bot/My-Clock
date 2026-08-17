@@ -7,42 +7,26 @@ on:
       - main
 
 jobs:
-
   build:
 
     runs-on: ubuntu-24.04
 
     steps:
 
-      # -----------------------------
-      # دریافت پروژه
-      # -----------------------------
       - name: Checkout
         uses: actions/checkout@v4
 
-
-      # -----------------------------
-      # Python مخصوص Buildozer
-      # -----------------------------
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
+          python-version: "3.12"
 
-
-      # -----------------------------
-      # Java 17
-      # -----------------------------
       - name: Set up Java
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: "17"
 
-
-      # -----------------------------
-      # نصب وابستگی‌های سیستم
-      # -----------------------------
       - name: Install system dependencies
         run: |
           sudo apt-get update
@@ -63,38 +47,27 @@ jobs:
             libffi-dev \
             libssl-dev
 
-
-      # -----------------------------
-      # نصب Buildozer
-      # -----------------------------
-      - name: Install Buildozer
+      - name: Install Python packages
         run: |
           python -m pip install --upgrade pip
           python -m pip install buildozer
           python -m pip install "Cython==0.29.36"
 
+      - name: Show Python versions
+        run: |
+          python --version
+          python -c "import sys; print(sys.version)"
 
-      # -----------------------------
-      # پاک کردن کش قبلی Buildozer
-      # -----------------------------
-      - name: Clean old Buildozer files
+      - name: Clean Buildozer
         run: |
           rm -rf .buildozer
           rm -rf bin
 
-
-      # -----------------------------
-      # ساخت APK
-      # -----------------------------
       - name: Build APK
         run: |
           set -o pipefail
           buildozer -v android debug 2>&1 | tee build.log
 
-
-      # -----------------------------
-      # نمایش خطاهای واقعی
-      # -----------------------------
       - name: Show important errors
         if: failure()
         run: |
@@ -112,10 +85,6 @@ jobs:
 
           tail -n 150 build.log
 
-
-      # -----------------------------
-      # آپلود APK
-      # -----------------------------
       - name: Upload APK
         if: success()
         uses: actions/upload-artifact@v4
