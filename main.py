@@ -127,6 +127,8 @@ class DateTimeApp(App):
             text="00:00:00",
             font_size="80sp",
             bold=True,
+       # ساعت — بنفش
+color=(0.65, 0.20, 1.0, 1),
             size_hint_y=0.30
         )
 
@@ -155,17 +157,23 @@ class DateTimeApp(App):
 
         self.date_label = Label(
             text="1405/01/01",
-            font_size="50sp"
+            font_size="55sp",
+            # شمسی — سبز
+color=(0.10, 0.75, 0.35, 1)
         )
 
         self.gregorian_label = Label(
             text="2026/01/01",
-            font_size="50sp"
+            font_size="45sp",
+            # میلادی — نارنجی
+color=(1.0, 0.45, 0.05, 1)
         )
 
         self.hijri_label = Label(
             text="1447/01/01",
-            font_size="50sp"
+            font_size="35sp",
+            # قمری — صورتی
+color=(1.0, 0.20, 0.55, 1)
         )
 
         dates.add_widget(self.date_label)
