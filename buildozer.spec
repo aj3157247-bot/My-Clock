@@ -17,16 +17,24 @@ fullscreen = 0
 
 android.api = 35
 android.minapi = 24
-android.ndk_api = 24
-
 android.archs = arm64-v8a
 
 android.accept_sdk_license = True
 
-android.allow_backup = True
+android.ndk = 27c
 
-android.entrypoint = org.kivy.android.PythonActivity
+android.enable_androidx = True
 
-p4a.bootstrap = sdl2
+android.add_src =
+
+android.permissions =
+
+p4a.branch = master
 
 log_level = 2
+
+
+[buildozer]
+
+log_level = 2
+warn_on_root = 1
