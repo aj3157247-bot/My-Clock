@@ -7,36 +7,53 @@ on:
       - main
 
 jobs:
+
   build:
-    runs-on: ubuntu-22.04
+
+    runs-on: ubuntu-24.04
 
     steps:
 
+      # -----------------------------
+      # دریافت پروژه
+      # -----------------------------
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Python 3.11
+
+      # -----------------------------
+      # Python مخصوص Buildozer
+      # -----------------------------
+      - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
 
-      - name: Setup Java 17
-        uses: actions/setup-java@v5
+
+      # -----------------------------
+      # Java 17
+      # -----------------------------
+      - name: Set up Java
+        uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: "17"
 
+
+      # -----------------------------
+      # نصب وابستگی‌های سیستم
+      # -----------------------------
       - name: Install system dependencies
         run: |
-          sudo apt-get update -qq
+          sudo apt-get update
 
-          sudo apt-get install -y -qq \
+          sudo apt-get install -y \
             git \
             zip \
             unzip \
+            openjdk-17-jdk \
             autoconf \
             automake \
-            autopoint \
             libtool \
             pkg-config \
             zlib1g-dev \
@@ -44,70 +61,40 @@ jobs:
             libncursesw5-dev \
             cmake \
             libffi-dev \
-            libssl-dev \
-            gettext
+            libssl-dev
 
-      - name: Check Python
+
+      # -----------------------------
+      # نصب Buildozer
+      # -----------------------------
+      - name: Install Buildozer
         run: |
-          echo "=========================================="
-          echo "PYTHON INFORMATION"
-          echo "=========================================="
+          python -m pip install --upgrade pip
+          python -m pip install buildozer
+          python -m pip install "Cython==0.29.36"
 
-          python --version
-          python -c "import sys; print(sys.executable)"
-          python -m pip --version
 
-      - name: Install Build tools
+      # -----------------------------
+      # پاک کردن کش قبلی Buildozer
+      # -----------------------------
+      - name: Clean old Buildozer files
         run: |
-          python -m pip install --upgrade pip setuptools wheel
-
-          pip install buildozer==1.5.0
-          pip install "cython==0.29.36"
-
-      - name: Clean old build
-        run: |
-          echo "=========================================="
-          echo "CLEANING OLD BUILD"
-          echo "=========================================="
-
-          rm -rf ~/.buildozer
           rm -rf .buildozer
           rm -rf bin
-          rm -rf build
 
-      - name: Check project files
-        run: |
-          echo "=========================================="
-          echo "PROJECT FILES"
-          echo "=========================================="
 
-          echo "Current directory:"
-          pwd
-
-          echo ""
-          echo "Files:"
-          find . -maxdepth 2 -type f | sort
-
-          echo ""
-          echo "Buildozer version:"
-          buildozer version
-
-      - name: Build My Clock APK
-        shell: bash
-        env:
-          PIP_NO_CACHE_DIR: "1"
-          PIP_DISABLE_PIP_VERSION_CHECK: "1"
+      # -----------------------------
+      # ساخت APK
+      # -----------------------------
+      - name: Build APK
         run: |
           set -o pipefail
-
-          echo "=========================================="
-          echo "STARTING APK BUILD"
-          echo "=========================================="
-
-          python --version
-
           buildozer -v android debug 2>&1 | tee build.log
 
+
+      # -----------------------------
+      # نمایش خطاهای واقعی
+      # -----------------------------
       - name: Show important errors
         if: failure()
         run: |
@@ -115,36 +102,23 @@ jobs:
           echo "IMPORTANT ERRORS"
           echo "=========================================="
 
-          if [ -f build.log ]; then
-            grep -inE \
-              "error:|error |failed|exception|traceback|fatal|aidl|command failed|not found|no such file|cannot|could not|unsupported wheel|cp314|charset_normalizer" \
-              build.log \
-              | tail -n 150 || true
-          else
-            echo "build.log was not created."
-          fi
+          grep -nEi \
+          "error:|error |failed|exception|traceback|fatal|not supported|command failed|buildozer failed" \
+          build.log || true
 
-      - name: Check APK
-        if: always()
-        run: |
           echo "=========================================="
-          echo "CHECKING APK"
+          echo "LAST 150 LINES"
           echo "=========================================="
 
-          find . -type f -name "*.apk" -print || true
+          tail -n 150 build.log
 
+
+      # -----------------------------
+      # آپلود APK
+      # -----------------------------
       - name: Upload APK
         if: success()
         uses: actions/upload-artifact@v4
         with:
-          name: myclock-apk
+          name: My-Clock-APK
           path: bin/*.apk
-          if-no-files-found: error
-
-      - name: Upload Log
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: myclock-build-log
-          path: build.log
-          if-no-files-found: ignore
