@@ -8,7 +8,6 @@ on:
 
 jobs:
   build:
-
     runs-on: ubuntu-24.04
 
     steps:
@@ -24,18 +23,16 @@ jobs:
       - name: Set up Java
         uses: actions/setup-java@v4
         with:
-          distribution: temurin
+          distribution: "temurin"
           java-version: "17"
 
       - name: Install system dependencies
         run: |
           sudo apt-get update
-
           sudo apt-get install -y \
             git \
             zip \
             unzip \
-            openjdk-17-jdk \
             autoconf \
             automake \
             libtool \
@@ -45,49 +42,33 @@ jobs:
             libncursesw5-dev \
             cmake \
             libffi-dev \
-            libssl-dev
+            libssl-dev \
+            gettext
 
-      - name: Install Python packages
+      - name: Install Buildozer
         run: |
           python -m pip install --upgrade pip
           python -m pip install buildozer
-          python -m pip install "Cython==0.29.36"
+          python -m pip install "cython==0.29.34"
 
-      - name: Show Python versions
+      - name: Show versions
         run: |
           python --version
-          python -c "import sys; print(sys.version)"
-
-      - name: Clean Buildozer
-        run: |
-          rm -rf .buildozer
-          rm -rf bin
+          java -version
+          buildozer --version
+          cython --version
 
       - name: Build APK
         run: |
-          set -o pipefail
-          buildozer -v android debug 2>&1 | tee build.log
+          buildozer android debug
 
-      - name: Show important errors
-        if: failure()
+      - name: Find APK
         run: |
-          echo "=========================================="
-          echo "IMPORTANT ERRORS"
-          echo "=========================================="
-
-          grep -nEi \
-          "error:|error |failed|exception|traceback|fatal|not supported|command failed|buildozer failed" \
-          build.log || true
-
-          echo "=========================================="
-          echo "LAST 150 LINES"
-          echo "=========================================="
-
-          tail -n 150 build.log
+          find bin -type f -name "*.apk" -print
 
       - name: Upload APK
-        if: success()
         uses: actions/upload-artifact@v4
         with:
           name: My-Clock-APK
           path: bin/*.apk
+          if-no-files-found: error
