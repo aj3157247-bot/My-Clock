@@ -8,156 +8,72 @@ on:
 
 jobs:
   build:
-    name: Build Android APK
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-22.04
 
     steps:
-
-      # --------------------------------
-      # 1. Download project
-      # --------------------------------
       - name: Checkout
         uses: actions/checkout@v4
 
-
-      # --------------------------------
-      # 2. Python 3.12
-      # --------------------------------
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.12"
+          python-version: "3.11"
 
-
-      # --------------------------------
-      # 3. Java 17
-      # --------------------------------
       - name: Set up Java
         uses: actions/setup-java@v4
         with:
-          distribution: "temurin"
+          distribution: temurin
           java-version: "17"
 
-
-      # --------------------------------
-      # 4. System packages
-      # --------------------------------
       - name: Install system dependencies
         run: |
           sudo apt-get update
-
           sudo apt-get install -y \
-            git \
-            zip \
-            unzip \
-            openjdk-17-jdk \
             autoconf \
             automake \
-            libtool \
-            pkg-config \
-            zlib1g-dev \
-            libncurses5-dev \
-            libncursesw5-dev \
-            libtinfo6 \
+            autopoint \
+            build-essential \
+            ccache \
             cmake \
+            git \
+            lbzip2 \
             libffi-dev \
+            libltdl-dev \
+            libtool \
+            libtool-bin \
             libssl-dev \
-            gettext
+            make \
+            pkg-config \
+            unzip \
+            zip \
+            wget
 
-
-      # --------------------------------
-      # 5. Install Buildozer
-      # --------------------------------
       - name: Install Buildozer
         run: |
           python -m pip install --upgrade pip
-          python -m pip install buildozer
-          python -m pip install setuptools
-          python -m pip install "cython==0.29.34"
+          python -m pip install --upgrade buildozer
+          python -m pip install "cython==0.29.36"
 
-
-      # --------------------------------
-      # 6. Show environment
-      # --------------------------------
-      - name: Show versions
+      - name: Clean previous build
         run: |
-          echo "========== PYTHON =========="
-          python --version
+          rm -rf .buildozer
+          rm -rf bin
 
-          echo "========== PIP =========="
-          python -m pip --version
-
-          echo "========== BUILDOZER =========="
-          buildozer --version
-
-          echo "========== CYTHON =========="
-          cython --version
-
-          echo "========== JAVA =========="
-          java -version
-
-          echo "========== JAVAC =========="
-          javac -version
-
-
-      # --------------------------------
-      # 7. Build APK + SAVE FULL LOG
-      # --------------------------------
       - name: Build APK
         run: |
-          set -o pipefail
-
-          echo "========================================"
-          echo "        STARTING BUILDOZER BUILD"
-          echo "========================================"
-
           buildozer -v android debug 2>&1 | tee build.log
+          test -f bin/*.apk
 
-          BUILD_EXIT_CODE=${PIPESTATUS[0]}
-
-          echo ""
-          echo "========================================"
-          echo "        BUILDOZER EXIT CODE"
-          echo "========================================"
-          echo "$BUILD_EXIT_CODE"
-
-          exit "$BUILD_EXIT_CODE"
-
-
-      # --------------------------------
-      # 8. Show APK files
-      # --------------------------------
-      - name: Find APK
-        if: always()
-        run: |
-          echo "========== APK FILES =========="
-
-          if [ -d "bin" ]; then
-            find bin -type f -name "*.apk" -print
-          else
-            echo "bin directory does not exist."
-          fi
-
-
-      # --------------------------------
-      # 9. Upload FULL BUILD LOG
-      # --------------------------------
-      - name: Upload build.log
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: My-Clock-build-log
-          path: build.log
-          if-no-files-found: warn
-
-
-      # --------------------------------
-      # 10. Upload APK
-      # --------------------------------
       - name: Upload APK
         if: success()
         uses: actions/upload-artifact@v4
         with:
           name: My-Clock-APK
           path: bin/*.apk
-          if-no-files-found: error
+
+      - name: Upload build log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: My-Clock-build-log
+          path: build.log
