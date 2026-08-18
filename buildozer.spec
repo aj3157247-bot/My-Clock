@@ -23,4 +23,8 @@ android.enable_androidx = True
 
 p4a.branch = master
 
+android.add_src = %(source.dir)s/android/src
+android.add_resources = %(source.dir)s/android/res
+android.extra_manifest_application_arguments = %(source.dir)s/android/extra_manifest_application_arguments.xml
+
 log_level = 2
