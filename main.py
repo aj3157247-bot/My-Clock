@@ -1,5 +1,6 @@
 from kivy.app import App
 from kivy.uix.boxlayout import BoxLayout
+from kivy.uix.floatlayout import FloatLayout
 from kivy.uix.label import Label
 from kivy.clock import Clock
 from datetime import datetime
@@ -10,11 +11,15 @@ from datetime import datetime
 # -----------------------------
 def gregorian_to_jalali(gy, gm, gd):
 
-    g_days = [31, 28, 31, 30, 31, 30,
-              31, 31, 30, 31, 30, 31]
+    g_days = [
+        31, 28, 31, 30, 31, 30,
+        31, 31, 30, 31, 30, 31
+    ]
 
-    j_days = [31, 31, 31, 31, 31, 31,
-              30, 30, 30, 30, 30, 29]
+    j_days = [
+        31, 31, 31, 31, 31, 31,
+        30, 30, 30, 30, 30, 29
+    ]
 
     gy2 = gy - 1600
     gm2 = gm - 1
@@ -41,7 +46,12 @@ def gregorian_to_jalali(gy, gm, gd):
     j_np = j_day_no // 12053
     j_day_no %= 12053
 
-    jy = 979 + 33 * j_np + 4 * (j_day_no // 1461)
+    jy = (
+        979
+        + 33 * j_np
+        + 4 * (j_day_no // 1461)
+    )
+
     j_day_no %= 1461
 
     if j_day_no >= 366:
@@ -66,6 +76,7 @@ def gregorian_to_jalali(gy, gm, gd):
 def gregorian_to_hijri(year, month, day):
 
     a = (14 - month) // 12
+
     y = year + 4800 - a
     m = month + 12 * a - 3
 
@@ -80,6 +91,7 @@ def gregorian_to_hijri(year, month, day):
     )
 
     l = jd - 1948440 + 10632
+
     n = (l - 1) // 10631
 
     l = l - 10631 * n + 354
@@ -101,7 +113,9 @@ def gregorian_to_hijri(year, month, day):
     )
 
     m = (24 * l) // 709
+
     d = l - (709 * m) // 24
+
     y = 30 * n + j - 30
 
     return y, m, d
@@ -120,79 +134,119 @@ class DateTimeApp(App):
             spacing=0
         )
 
-        # -------------------------
+        # -----------------------------
         # ساعت
-        # -------------------------
-        self.time_label = Label(
-            text="00:00:00",
-            font_size="80sp",
-            bold=True,
-       # ساعت — بنفش
-color=(0.65, 0.20, 1.0, 1),
-            size_hint_y=0.30
+        # -----------------------------
+
+        time_container = FloatLayout(
+            size_hint_y=0.90
         )
 
-        main.add_widget(self.time_label)
+        self.time_label = Label(
+            text="09\n45",
 
+            # بزرگ‌تر
+            font_size="200sp",
 
-        # -------------------------
+            # ضخیم
+            bold=True,
+           
+
+            # اندازه ثابت
+            size_hint=(None, None),
+            size=(500, 500),
+
+            # جای ساعت
+            pos_hint={
+                "center_x": 0.5,
+                "center_y": 0.40
+            },
+
+            # فاصله ساعت و دقیقه
+            line_height=0.80,
+
+            halign="center",
+            valign="middle"
+        )
+
+        time_container.add_widget(
+            self.time_label
+        )
+
+        main.add_widget(
+            time_container
+        )
+
+        # -----------------------------
         # فضای خالی
-        # -------------------------
+        # -----------------------------
+
         top_space = Label(
             text="",
-            size_hint_y=0.20
+            size_hint_y=0.10
         )
 
-        main.add_widget(top_space)
+        main.add_widget(
+            top_space
+        )
 
-
-        # -------------------------
+        # -----------------------------
         # تاریخ‌ها
-        # -------------------------
+        # -----------------------------
+
         dates = BoxLayout(
             orientation="vertical",
             spacing=-8,
-            size_hint_y=0.25
+            size_hint_y=0.40
         )
 
         self.date_label = Label(
             text="1405/01/01",
-            font_size="55sp",
-            # شمسی — سبز
-color=(0.10, 0.75, 0.35, 1)
+            font_size="50sp"
         )
 
         self.gregorian_label = Label(
             text="2026/01/01",
-            font_size="45sp",
-            # میلادی — نارنجی
-color=(1.0, 0.45, 0.05, 1)
+            font_size="50sp"
         )
 
         self.hijri_label = Label(
             text="1447/01/01",
-            font_size="35sp",
-            # قمری — صورتی
-color=(1.0, 0.20, 0.55, 1)
+            font_size="50sp"
         )
 
-        dates.add_widget(self.date_label)
-        dates.add_widget(self.gregorian_label)
-        dates.add_widget(self.hijri_label)
+        dates.add_widget(
+            self.date_label
+        )
 
-        main.add_widget(dates)
+        dates.add_widget(
+            self.gregorian_label
+        )
 
+        dates.add_widget(
+            self.hijri_label
+        )
 
-        # -------------------------
+        main.add_widget(
+            dates
+        )
+
+        # -----------------------------
         # فضای خالی پایین
-        # -------------------------
+        # -----------------------------
+
         bottom_space = Label(
             text="",
-            size_hint_y=0.25
+            size_hint_y=0.40
         )
 
-        main.add_widget(bottom_space)
+        main.add_widget(
+            bottom_space
+        )
 
+        # -----------------------------
+        # بروزرسانی
+        # -----------------------------
 
         Clock.schedule_interval(
             self.update_clock,
@@ -203,18 +257,17 @@ color=(1.0, 0.20, 0.55, 1)
 
         return main
 
-
     # -----------------------------
     # بروزرسانی
     # -----------------------------
+
     def update_clock(self, dt):
 
         now = datetime.now()
 
         self.time_label.text = now.strftime(
-            "%I:%M:%P"
+            "%I\n%M"
         )
-
 
         # شمسی
         jy, jm, jd = gregorian_to_jalali(
@@ -227,14 +280,12 @@ color=(1.0, 0.20, 0.55, 1)
             f"{jy}/{jm:02d}/{jd:02d}"
         )
 
-
         # میلادی
         self.gregorian_label.text = (
             f"{now.year}/"
             f"{now.month:02d}/"
             f"{now.day:02d}"
         )
-
 
         # قمری
         hy, hm, hd = gregorian_to_hijri(
