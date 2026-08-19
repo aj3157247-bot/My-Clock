@@ -5,7 +5,7 @@ package.name = myclock
 package.domain = org.example
 
 source.dir = .
-source.include_exts = py,png,jpg,jpeg,kv,atlas
+source.include_exts = py,png,jpg,jpeg,kv,atlas,xml,java
 
 requirements = python3==3.11.9,hostpython3==3.11.9,kivy==2.3.1
 
@@ -21,10 +21,11 @@ android.archs = arm64-v8a
 android.accept_sdk_license = True
 android.enable_androidx = True
 
-p4a.branch = master
+android.add_src = ./android/src
+android.add_resource = ./android/res
 
-android.add_src = %(source.dir)s/android/src
-android.add_resources = %(source.dir)s/android/res
-android.extra_manifest_application_arguments = %(source.dir)s/android/extra_manifest_application_arguments.xml
+android.extra_manifest_application_arguments = ./android/extra_manifest_application_arguments.xml
+
+p4a.branch = master
 
 log_level = 2
